@@ -118,7 +118,7 @@ GET /api/v2/public/quote/getKline
 
 > Request Example
 ```
-https://pro.edgex.exchange/api/v2/public/quote/getKline?contractId=10000002&klineType=HOUR_1&filterBeginKlineTimeInclusive=1733416860000&filterEndKlineTimeExclusive=1734601200000&priceType=LAST_PRICE
+https://edgex-prod-v2.edgex.exchange/api/v2/public/quote/getKline?contractId=10000002&klineType=HOUR_1&filterBeginKlineTimeInclusive=1733416860000&filterEndKlineTimeExclusive=1734601200000&priceType=LAST_PRICE
 ```
 
 > Response Example
@@ -183,7 +183,7 @@ GET /api/v2/public/quote/getMultiContractKline
 
 > Request Example
 ```text
-https://pro.edgex.exchange/api/v2/public/quote/getMultiContractKline?contractIdList=10000001&klineType=HOUR_1&filterBeginKlineTimeInclusive=1733416860000&filterEndKlineTimeExclusive=1734601200000&priceType=LAST_PRICE
+https://edgex-prod-v2.edgex.exchange/api/v2/public/quote/getMultiContractKline?contractIdList=10000001&klineType=HOUR_1&filterBeginKlineTimeInclusive=1733416860000&filterEndKlineTimeExclusive=1734601200000&priceType=LAST_PRICE
 ```
 
 > Response Example

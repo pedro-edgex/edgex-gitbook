@@ -49,7 +49,7 @@ Most unified-asset endpoints use an `attempt` object.
   "destination": "chain-3343",
   "destinationAccount": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
   "clientWithdrawId": "849849126827855872",
-  "expireTime": 123456
+  "expireTime": 1893456000
 }
 ```
 
@@ -108,7 +108,7 @@ Returns the fee for a unified asset flow attempt. In SDK withdraw flow, this is 
     "destination": "chain-3343",
     "destinationAccount": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
     "clientWithdrawId": "849849126827855872",
-    "expireTime": 123456
+    "expireTime": 1893456000
   }
 }
 ```
@@ -159,7 +159,7 @@ Returns the EIP-712 typed-data payload that must be signed for withdraw submissi
     "destination": "chain-3343",
     "destinationAccount": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
     "clientWithdrawId": "849849126827855872",
-    "expireTime": 123456
+    "expireTime": 1893456000
   }
 }
 ```
@@ -178,21 +178,37 @@ Returns the EIP-712 typed-data payload that must be signed for withdraw submissi
   "code": "SUCCESS",
   "data": {
     "types": {
+      "EIP712Domain": {
+        "fields": [
+          { "name": "name", "type": "string" },
+          { "name": "version", "type": "string" },
+          { "name": "verifyingContract", "type": "address" }
+        ]
+      },
       "AssetFlowAttempt": {
         "fields": [
-          {
-            "name": "amount",
-            "type": "uint256"
-          }
+          { "name": "userId", "type": "string" },
+          { "name": "userAddress", "type": "address" },
+          { "name": "privyAddress", "type": "address" },
+          { "name": "source", "type": "string" },
+          { "name": "sourceAccount", "type": "string" },
+          { "name": "tokenAddress", "type": "string" },
+          { "name": "amount", "type": "string" },
+          { "name": "fee", "type": "string" },
+          { "name": "destination", "type": "string" },
+          { "name": "destinationAccount", "type": "string" },
+          { "name": "clientWithdrawId", "type": "string" },
+          { "name": "expireTime", "type": "string" }
         ]
       }
     },
     "primaryType": "AssetFlowAttempt",
     "domain": {
-      "name": "EdgeX",
-      "version": "1"
+      "name": "edgeX Asset Flow",
+      "version": "1",
+      "verifyingContract": "0x000000000000000000000000000000000000eD9E"
     },
-    "messageJson": "{\"amount\":\"990\"}"
+    "messageJson": "{\"userId\":\"12345\",\"userAddress\":\"0xFCAd0B19bB29D4674531d6f115237E16AfCE377c\",\"privyAddress\":\"0x0000000000000000000000000000000000000000\",\"source\":\"spot\",\"sourceAccount\":\"12345\",\"tokenAddress\":\"0x98d2919b9A214E6Fa5384AC81E6864bA686Ad74c\",\"amount\":\"990\",\"fee\":\"10\",\"destination\":\"chain-3343\",\"destinationAccount\":\"0xFCAd0B19bB29D4674531d6f115237E16AfCE377c\",\"clientWithdrawId\":\"849849126827855872\",\"expireTime\":\"1893456000\"}"
   },
   "msg": null,
   "errorParam": null,
@@ -292,7 +308,7 @@ Submits a signed unified asset flow. In the SDK, this is used by the withdraw fl
     "destination": "chain-3343",
     "destinationAccount": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
     "clientWithdrawId": "849849126827855872",
-    "expireTime": 123456
+    "expireTime": 1893456000
   },
   "userSignature": "0x1111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111111",
   "extraData": "",

@@ -163,119 +163,41 @@ if !common.IsHexAddress(tradingSigner) {
 tradingSigner = common.HexToAddress(tradingSigner).Hex()
 ```
 
-### Complete Golang Example
+### Using EdgeX Golang SDK
 
 ```go
 package main
 
 import (
+    "context"
     "fmt"
-    "strconv"
-    "strings"
-    "time"
+    "log"
 
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk/metadata"
-    "github.com/ethereum/go-ethereum/common"
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/account"
 )
 
-func calcSetMarginModeL2ExpireTime(now time.Time) string {
-    nowMillis := now.UnixMilli()
-    nextHourMillis := ((nowMillis + 3600000 - 1) / 3600000) * 3600000
-    return strconv.FormatInt(nextHourMillis+14*24*60*60*1000, 10)
-}
-
-func SignSetMarginMode(
-    signerPrivateKey string,
-    accountID int64,
-    params SetMarginModeParams,
-    md *metadata.MetaData,
-) (internal.TypedData, map[string]any, error) {
-    if md == nil || md.Global == nil {
-        return internal.TypedData{}, nil, fmt.Errorf("metadata.global is required")
-    }
-
-    chainID := strings.TrimSpace(md.Global.NativeChainId)
-    if chainID == "" {
-        chainID = strings.TrimSpace(md.Global.ChainId)
-    }
-    if chainID == "" {
-        return internal.TypedData{}, nil, fmt.Errorf("metadata.global.nativeChainId/chainId is required")
-    }
-    verifyingContract := strings.TrimSpace(md.Global.ContractAddress)
-    if verifyingContract == "" {
-        return internal.TypedData{}, nil, fmt.Errorf("metadata.global.contractAddress is required")
-    }
-
-    clientOrderID := strings.TrimSpace(params.ClientOrderID)
-    if clientOrderID == "" {
-        clientOrderID = internal.GetRandomClientId()
-    }
-    l2Nonce := internal.CalcNonce(clientOrderID)
-    l2ExpireTime := calcSetMarginModeL2ExpireTime(time.Now())
-
-    marginMode := strings.TrimSpace(params.MarginMode)
-    marginModeUint, err := strconv.ParseUint(marginMode, 10, 8)
+func main() {
+    client, err := sdk.NewClient(&sdk.ClientConfig{
+        BaseURL:       "https://edgex-prod-v2.edgex.exchange",
+        AccountID:     543429922991899150,
+        APIKey:        "your-api-key",
+        APIPassphrase: "your-api-passphrase",
+        APISecret:     "your-api-secret",
+        SignerPriKey:  "your-signer-private-key",
+    })
     if err != nil {
-        return internal.TypedData{}, nil, fmt.Errorf("invalid marginMode: %w", err)
+        log.Fatal(err)
     }
 
-    tradingSigner, err := ResolveSignerAddressFromPrivateKey(signerPrivateKey)
+    resp, err := client.SetMarginMode(context.Background(), &account.SetMarginModeParams{
+        ContractID: "10000001",
+        MarginMode: "1",
+    })
     if err != nil {
-        return internal.TypedData{}, nil, fmt.Errorf("trading private key is required for v2 EIP-712 margin mode signing: %w", err)
+        log.Fatal(err)
     }
-    if !common.IsHexAddress(tradingSigner) {
-        return internal.TypedData{}, nil, fmt.Errorf("invalid signer address: %s", tradingSigner)
-    }
-    tradingSigner = common.HexToAddress(tradingSigner).Hex()
-
-    domain, err := internal.NewTypedDataDomain("EdgeX", "1", chainID, verifyingContract)
-    if err != nil {
-        return internal.TypedData{}, nil, fmt.Errorf("failed to build EIP-712 domain: %w", err)
-    }
-
-    typedData := internal.TypedData{
-        Types: internal.TypedDataTypes{
-            "EIP712Domain": {
-                {Name: "name", Type: "string"},
-                {Name: "version", Type: "string"},
-                {Name: "chainId", Type: "uint256"},
-                {Name: "verifyingContract", Type: "address"},
-            },
-            "SetMarginPreferenceParams": {
-                {Name: "accountId", Type: "uint64"},
-                {Name: "assetId", Type: "uint64"},
-                {Name: "marginMode", Type: "uint8"},
-                {Name: "nonce", Type: "uint256"},
-                {Name: "signer", Type: "address"},
-            },
-        },
-        PrimaryType: "SetMarginPreferenceParams",
-        Domain:      domain,
-        Message: internal.TypedDataMessage{
-            "accountId":  strconv.FormatInt(accountID, 10),
-            "assetId":    strings.TrimSpace(params.ContractID),
-            "marginMode": strconv.FormatUint(marginModeUint, 10),
-            "nonce":      strconv.FormatInt(l2Nonce, 10),
-            "signer":     tradingSigner,
-        },
-    }
-
-    l2Signature, err := internal.SignTypedDataWithPrivateKey(signerPrivateKey, typedData)
-    if err != nil {
-        return internal.TypedData{}, nil, fmt.Errorf("failed to sign margin mode payload: %w", err)
-    }
-
-    requestBody := map[string]any{
-        "accountId":    strconv.FormatInt(accountID, 10),
-        "contractId":   strings.TrimSpace(params.ContractID),
-        "marginMode":   marginMode,
-        "l2Nonce":      strconv.FormatInt(l2Nonce, 10),
-        "l2ExpireTime": l2ExpireTime,
-        "signer":       tradingSigner,
-        "l2Signature":  l2Signature,
-    }
-    return typedData, requestBody, nil
+    fmt.Printf("margin mode updated: %+v\n", resp)
 }
 ```
 
@@ -538,15 +460,14 @@ package main
 import (
     "context"
     "log"
-    
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk"
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk/order"
-    "github.com/shopspring/decimal"
+
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/order"
 )
 
 func main() {
     // Create client with trading private key
-    client, err := sdk.NewClient(&sdk.Config{
+    client, err := sdk.NewClient(&sdk.ClientConfig{
         BaseURL:       "https://<api-domain>",
         AccountID:     724625476626153743,
         APIKey:        "your-api-key",
@@ -567,7 +488,7 @@ func main() {
         Type:       order.OrderTypeLimit,
         Price:      "97463.4",
         Size:       "0.001",
-    }, nil, decimal.NewFromFloat(97463.4))
+    })
     
     if err != nil {
         log.Fatal(err)
@@ -615,7 +536,7 @@ Unified-asset withdraw uses this sequence:
   "destination": "chain-3343",
   "destinationAccount": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
   "clientWithdrawId": "849849126827855872",
-  "expireTime": 123456
+  "expireTime": 1893456000
 }
 ```
 
@@ -635,21 +556,37 @@ The SDK signs the typed data returned by `getEIP712Data`. A typical response sha
 ```json
 {
   "types": {
+    "EIP712Domain": {
+      "fields": [
+        { "name": "name", "type": "string" },
+        { "name": "version", "type": "string" },
+        { "name": "verifyingContract", "type": "address" }
+      ]
+    },
     "AssetFlowAttempt": {
       "fields": [
-        {
-          "name": "amount",
-          "type": "uint256"
-        }
+        { "name": "userId", "type": "string" },
+        { "name": "userAddress", "type": "address" },
+        { "name": "privyAddress", "type": "address" },
+        { "name": "source", "type": "string" },
+        { "name": "sourceAccount", "type": "string" },
+        { "name": "tokenAddress", "type": "string" },
+        { "name": "amount", "type": "string" },
+        { "name": "fee", "type": "string" },
+        { "name": "destination", "type": "string" },
+        { "name": "destinationAccount", "type": "string" },
+        { "name": "clientWithdrawId", "type": "string" },
+        { "name": "expireTime", "type": "string" }
       ]
     }
   },
   "primaryType": "AssetFlowAttempt",
   "domain": {
-    "name": "EdgeX",
-    "version": "1"
+    "name": "edgeX Asset Flow",
+    "version": "1",
+    "verifyingContract": "0x000000000000000000000000000000000000eD9E"
   },
-  "messageJson": "{\"amount\":\"990\"}"
+  "messageJson": "{\"userId\":\"12345\",\"userAddress\":\"0xFCAd0B19bB29D4674531d6f115237E16AfCE377c\",\"privyAddress\":\"0x0000000000000000000000000000000000000000\",\"source\":\"spot\",\"sourceAccount\":\"12345\",\"tokenAddress\":\"0x98d2919b9A214E6Fa5384AC81E6864bA686Ad74c\",\"amount\":\"990\",\"fee\":\"10\",\"destination\":\"chain-3343\",\"destinationAccount\":\"0xFCAd0B19bB29D4674531d6f115237E16AfCE377c\",\"clientWithdrawId\":\"849849126827855872\",\"expireTime\":\"1893456000\"}"
 }
 ```
 
@@ -666,13 +603,14 @@ import (
     "context"
     "log"
 
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk"
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk/unified_asset"
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk/unified_asset"
 )
 
 func main() {
-    client, err := sdk.NewClient(&sdk.Config{
-        BaseURL:        "https://<api-domain>",
+    client, err := sdk.NewClient(&sdk.ClientConfig{
+        BaseURL:        "https://edgex-prod-v2.edgex.exchange",
+        AssetBaseURL:   "https://spot.edgex.exchange",
         AccountID:      12345,
         APIKey:         "your-api-key",
         APIPassphrase:  "your-api-passphrase",
@@ -686,7 +624,7 @@ func main() {
     result, err := client.CreateWithdraw(context.Background(), unified_asset.CreateWithdrawParams{
         AmountRaw:   "1000",
         UserAddress: "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
-        TokenAddress:"0x98d2919b9A214E6Fa5384AC81E6864bA686Ad74c",
+        TokenAddress: "0x98d2919b9A214E6Fa5384AC81E6864bA686Ad74c",
         ChainID:     3343,
     })
     if err != nil {
@@ -719,7 +657,7 @@ Internally, the SDK performs:
     "destination": "chain-3343",
     "destinationAccount": "0xFCAd0B19bB29D4674531d6f115237E16AfCE377c",
     "clientWithdrawId": "849849126827855872",
-    "expireTime": 123456
+    "expireTime": 1893456000
   },
   "userSignature": "0x...",
   "extraData": "",
@@ -827,11 +765,17 @@ func SignTransfer(
 
 ```go
 import (
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk/internal"
+    "strings"
+
+    "github.com/ethereum/go-ethereum/crypto"
 )
 
 func DeriveAddress(privateKeyHex string) (string, error) {
-    return internal.DeriveAddressFromPrivateKey(privateKeyHex)
+    privateKey, err := crypto.HexToECDSA(strings.TrimPrefix(privateKeyHex, "0x"))
+    if err != nil {
+        return "", err
+    }
+    return crypto.PubkeyToAddress(privateKey.PublicKey).Hex(), nil
 }
 
 // Example usage
@@ -878,6 +822,8 @@ func ParseResolution(resolutionStr, starkExResolutionStr string) (decimal.Decima
 
 ```go
 import (
+    "encoding/hex"
+
     "github.com/ethereum/go-ethereum/signer/core/apitypes"
     "github.com/ethereum/go-ethereum/crypto"
 )

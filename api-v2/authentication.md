@@ -369,12 +369,12 @@ import (
     "fmt"
     "log"
     
-    "github.com/edgex-Tech/edgex-golang-sdk/sdk"
+    "github.com/edgex-Tech/edgex-golang-sdk/v2/sdk"
 )
 
 func main() {
     // Create client with API credentials
-    client, err := sdk.NewClient(&sdk.Config{
+    client, err := sdk.NewClient(&sdk.ClientConfig{
         BaseURL:       "https://<api-domain>",
         AccountID:     724625476626153743,
         APIKey:        "your-api-key",
